@@ -1,90 +1,92 @@
-// Variables globales
-        let pinDigits = ['', '', '', ''];
-        let currentPosition = 0;
-        
-        // Obtener elementos del DOM
-        const digitInputs = document.querySelectorAll('.pin-digit');
-        const numpadButtons = document.querySelectorAll('.numpad-btn[data-value]');
-        const clearButton = document.getElementById('btn-clear');
-        const backspaceButton = document.getElementById('btn-backspace');
-        const loginButton = document.getElementById('btn-login');
-        
-        // Función para agregar un dígito al PIN
-        function addDigit(digit) {
-            if (currentPosition < 4) {
-                pinDigits[currentPosition] = digit;
-                digitInputs[currentPosition].value = digit;
-                currentPosition++;
-            }
-        }
-        
-        // Función para borrar el último dígito
-        function deleteDigit() {
-            if (currentPosition > 0) {
-                currentPosition--;
-                pinDigits[currentPosition] = '';
-                digitInputs[currentPosition].value = '';
-            }
-        }
-        
-        // Función para limpiar todo el PIN
-        function clearPin() {
-            pinDigits = ['', '', '', ''];
-            currentPosition = 0;
+// Datos del usuario
+        const usuario = {
+            nombre: "Ash Ketchum",
+            pin: "1234",
+            cuenta: "0987654321",
+            saldo: 500.00
+        };
+
+        // Función para verificar todas las credenciales
+        function verificarCredenciales() {
+            const nameInput = document.getElementById('nameInput');
+            const pinInput = document.getElementById('pinInput');
+            const accountInput = document.getElementById('accountInput');
+            const errorMessage = document.getElementById('loginErrorMessage');
             
-            for (let i = 0; i < 4; i++) {
-                digitInputs[i].value = '';
-            }
-        }
-        
-        // Función para verificar el PIN
-        function checkPin() {
-            const enteredPin = pinDigits.join('');
-            
-            // PIN correcto 
-            const correctPin = "1234";
-            
-            if (enteredPin === correctPin) {
+            const nombre = nameInput.value.trim();
+            const pin = pinInput.value;
+            const cuenta = accountInput.value.trim();
+
+            // Verificar todas las credenciales
+            if (nombre.toLowerCase() === usuario.nombre.toLowerCase() && 
+                pin === usuario.pin && 
+                cuenta === usuario.cuenta) {
                 
-                // Usar SweetAlert para éxito
-        Swal.fire({
-            title: '¡Acceso concedido!',
-            text: 'Redirigiendo al banco...',
-            icon: 'success',
-            confirmButtonText: 'Aceptar',
-            timer: 4000,
-            timerProgressBar: true
-        }).then(() => {
-               window.location.href = "PantallaAcciones.html"; // Redirigir a la página del banco
-        });
+                // Credenciales correctas - Usar SweetAlert
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Acceso concedido!',
+                    text: `Bienvenido ${usuario.nombre}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Guardar en localStorage
+                    localStorage.setItem('usuario', JSON.stringify(usuario));
+                    localStorage.setItem('logueado', 'true');
+                    localStorage.setItem('ultimoAcceso', new Date().toISOString());
+                    
+                    //Pagina principal del cajero
+                    window.location.href = 'PantallaAcciones.html';
+                });
+                
+                errorMessage.classList.add('hidden');
             } else {
-                         // Usar SweetAlert para error
-        Swal.fire({
-            title: '¡Acceso denegado!',
-            text: 'vuelva a intentarlo',
-            icon: 'error',
-            confirmButtonText: 'Aceptar',
-            timer: 4000,
-            timerProgressBar: true
-        }).then(() => {
-                clearPin(); // Limpiar el PIN para reintentar
-        });
-        
+                // Credenciales incorrectas
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Credenciales incorrectas',
+                    text: 'Por favor, verifique sus datos',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                
+                errorMessage.classList.remove('hidden');
+                limpiarFormularioLogin();
+                nameInput.focus();
             }
         }
-        
-        // Asignar eventos a los botones numéricos
-        for (let button of numpadButtons) {
-            button.addEventListener('click', function() {
-                addDigit(this.getAttribute('data-value'));
-            });
+
+        // Función para limpiar el formulario de login
+        function limpiarFormularioLogin() {
+            document.getElementById('nameInput').value = '';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('accountInput').value = '';
         }
-        
-        // Asignar evento al botón de borrar
-        backspaceButton.addEventListener('click', deleteDigit);
-        
-        // Asignar evento al botón de limpiar
-        clearButton.addEventListener('click', clearPin);
-        
-        // Asignar evento al botón de login
-        loginButton.addEventListener('click', checkPin);
+
+        // Permitir enviar con Enter en el formulario de login
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('pinInput').focus();
+            }
+        });
+
+        document.getElementById('pinInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('accountInput').focus();
+            }
+        });
+
+        document.getElementById('accountInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verificarCredenciales();
+            }
+        });
+
+        // Verificar si ya está logueado al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const logueado = localStorage.getItem('logueado');
+            if (logueado === 'true') {
+                // Si ya está logueado, redirigir a la página principal
+                window.location.href = 'index.html';
+            }
+        });
