@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokémon Bank ATM - Cajero Automático Digital</title>
     <meta name="description" content="Sistema de cajero automático digital de Pokémon Bank - Depósitos, retiros, consultas y más">
     
-   <!-- SweetAlert CSS -->
+    <!-- SweetAlert CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
    
     <!-- Bootstrap 4.6 -->
@@ -19,55 +18,60 @@
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS -->
+    <!--Diseno css-->
     <link href="css/StyleLogin.css" rel="stylesheet">
+    
+    <!--Codigo js-->
+    <script src="js/examples/LoginScript.js"></script>
 </head>
     
 <body>
- <div class="login-container">
+    <div class="login-container">
+        <!-- Logo P -->
+        <div class="logo">P</div>
+        
         <div class="login-header">
-            <div class="pokeball-modern"></div>
-            <h1 class="login-title">Pokémon Bank</h1>
-            <p>Ingresa tu PIN de 4 dígitos</p>
+            <h1 class="login-title">Pokemon Bank</h1>
+            <p>Acceso al Sistema</p>
         </div>
         
-        <div class="pin-inputs">
-            <input type="password" class="pin-digit" maxlength="1" placeholder="•" readonly>
-            <input type="password" class="pin-digit" maxlength="1" placeholder="•" readonly>
-            <input type="password" class="pin-digit" maxlength="1" placeholder="•" readonly>
-            <input type="password" class="pin-digit" maxlength="1" placeholder="•" readonly>
+        <!-- Formulario de Login como en la imagen -->
+        <div class="login-form">
+            <div class="input-group">
+                <label for="nameInput">Nombre completo:</label>
+                <input type="text" id="nameInput" placeholder="Ej: Ash Ketchum">
+            </div>
+            
+            <div class="input-group">
+                <label for="pinInput">PIN de seguridad:</label>
+                <input type="password" id="pinInput" placeholder="****" maxlength="4" inputmode="numeric">
+            </div>
+            
+            <div class="input-group">
+                <label for="accountInput">Número de cuenta:</label>
+                <input type="text" id="accountInput" placeholder="Ej: 0987654321">
+            </div>
         </div>
         
-        <div class="numpad">
-            <button class="numpad-btn" data-value="1">1</button>
-            <button class="numpad-btn" data-value="2">2</button>
-            <button class="numpad-btn" data-value="3">3</button>
-            <button class="numpad-btn" data-value="4">4</button>
-            <button class="numpad-btn" data-value="5">5</button>
-            <button class="numpad-btn" data-value="6">6</button>
-            <button class="numpad-btn" data-value="7">7</button>
-            <button class="numpad-btn" data-value="8">8</button>
-            <button class="numpad-btn" data-value="9">9</button>
-            <button class="numpad-btn" id="btn-clear">C</button>
-            <button class="numpad-btn" data-value="0">0</button>
-            <button class="numpad-btn" id="btn-backspace">⌫</button>
-        </div>
+        <button class="btn-login" onclick="verificarCredenciales()">Acceder al Sistema</button>
         
-        <button class="btn-login" id="btn-login">Acceder</button>
+        <div id="loginErrorMessage" class="message error hidden">
+            Credenciales incorrectas. Verifique sus datos.
+        </div>
         
         <div class="login-footer">
             <a href="#">¿Olvidaste tu PIN?</a>
         </div>
-        <br>
-        <br>
-         <!-- Footer -->
+    </div>
+
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <div class="footer-brand">
                         <div class="pokeball-mini"></div>
-                        <span>Pokémon Bank ATM</span>
+                        <span style="color: white;">Pokémon Bank ATM</span>
                     </div>
                     <p class="footer-text">Sistema de cajero automático digital seguro y confiable.</p>
                 </div>
@@ -82,15 +86,9 @@
             </div>
         </div>
     </footer>
-    </div>
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-        <script src="js/examples/LoginScript.js"></script>
 </body>
-
 </html>
-
-
