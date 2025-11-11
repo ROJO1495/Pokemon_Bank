@@ -149,6 +149,23 @@ body {
     max-width: 100%;
 }
 
+.btn-volver {
+    display: inline-block;
+    background: linear-gradient(45deg, #2196F3, #21CBF3);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-volver:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+
 /* =========================================
        5. CARDS RESPONSIVAS - CONTENIDO AJUSTADO
        ========================================= */
