@@ -2,7 +2,6 @@
 <html lang="es">
 
 <head>
-    <script src="js/storageManager.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pago de Servicios - Pokémon Bank ATM</title>
@@ -19,6 +18,9 @@
 
     <!-- CSS principal del proyecto -->
     <link href="css/style.css" rel="stylesheet">
+    
+    <!-- StorageManager -->
+    <script src="js/storageManager.js"></script>
 </head>
 
 <body>
@@ -80,34 +82,37 @@
                 <i class="fas fa-edit"></i> Datos del Pago
             </h4>
             
-            <form id="paymentForm">
+            <form id="paymentForm" novalidate>
                 <div class="row">
                     <div class="col-lg-6 mb-3">
-                        <label for="serviceProvider" class="form-label">Proveedor de Servicio</label>
-                        <select id="serviceProvider" class="form-control" required onchange="updateProviderInfo()">
+                        <label for="serviceProvider" class="form-label">Proveedor de Servicio *</label>
+                        <select id="serviceProvider" name="provider" class="form-control" required onchange="updateProviderInfo()">
                             <option value="">Seleccione un proveedor...</option>
                         </select>
+                        <div class="invalid-feedback" id="providerError"></div>
                     </div>
                     <div class="col-lg-6 mb-3">
-                        <label for="accountNumber" class="form-label">Número de Cuenta</label>
-                        <input type="text" id="accountNumber" class="form-control" 
+                        <label for="accountNumber" class="form-label">Número de Cuenta *</label>
+                        <input type="text" id="accountNumber" name="accountNumber" class="form-control" 
                                placeholder="Ingrese su número de cuenta" 
                                required maxlength="20">
+                        <div class="invalid-feedback" id="accountError"></div>
                         <small class="form-text text-muted" id="accountFormat">Formato: ###-###-###</small>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-lg-6 mb-3">
-                        <label for="paymentAmount" class="form-label">Monto a Pagar</label>
+                        <label for="paymentAmount" class="form-label">Monto a Pagar *</label>
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <span class="input-group-text">$</span>
                             </div>
-                            <input type="number" id="paymentAmount" class="form-control" 
+                            <input type="number" id="paymentAmount" name="amount" class="form-control" 
                                    placeholder="0.00" step="0.01" min="0" required
                                    onchange="calculateTotal()">
                         </div>
+                        <div class="invalid-feedback" id="amountError"></div>
                         <small class="form-text text-muted" id="amountLimits">Monto mínimo: $0.00</small>
                     </div>
                     <div class="col-lg-6 mb-3">
@@ -183,9 +188,86 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/validate.js/0.13.1/validate.min.js"></script>
 
     <script>
-        // Configuración de servicios disponibles
+        // ==========================================
+        // CONFIGURACIÓN DE VALIDACIONES CON VALIDATEJS
+        // ==========================================
+        
+        // Validadores personalizados
+        validate.validators.providerRequired = function(value, options) {
+            if (!value || value === '') {
+                return options.message || "^Debe seleccionar un proveedor";
+            }
+        };
+
+        validate.validators.accountNumberFormat = function(value, options) {
+            if (value && value.length < 5) {
+                return options.message || "^El número de cuenta debe tener al menos 5 caracteres";
+            }
+        };
+
+        validate.validators.amountInRange = function(value, options) {
+            const amount = parseFloat(value);
+            if (isNaN(amount) || amount <= 0) {
+                return "^Debe ingresar un monto válido";
+            }
+            if (options.min && amount < options.min) {
+                return `^El monto mínimo es ${formatCurrency(options.min)}`;
+            }
+            if (options.max && amount > options.max) {
+                return `^El monto máximo es ${formatCurrency(options.max)}`;
+            }
+        };
+
+        validate.validators.sufficientBalance = function(value, options) {
+            const amount = parseFloat(value);
+            const fee = options.fee || 0;
+            const total = amount + fee;
+            const balance = options.balance || 0;
+            
+            if (total > balance) {
+                return `^Saldo insuficiente. Disponible: ${formatCurrency(balance)}`;
+            }
+        };
+
+        // Esquema de validación base
+        const baseConstraints = {
+            provider: {
+                providerRequired: {
+                    message: "^Debe seleccionar un proveedor"
+                }
+            },
+            accountNumber: {
+                presence: {
+                    message: "^El número de cuenta es obligatorio"
+                },
+                accountNumberFormat: {
+                    message: "^El número de cuenta debe tener al menos 5 caracteres"
+                },
+                length: {
+                    minimum: 5,
+                    maximum: 20,
+                    tooShort: "^El número de cuenta debe tener al menos 5 caracteres",
+                    tooLong: "^El número de cuenta no puede exceder 20 caracteres"
+                }
+            },
+            amount: {
+                presence: {
+                    message: "^El monto es obligatorio"
+                },
+                numericality: {
+                    greaterThan: 0,
+                    notGreaterThan: "^El monto debe ser mayor a $0.00",
+                    notValid: "^Ingrese un monto válido"
+                }
+            }
+        };
+
+        // ==========================================
+        // CONFIGURACIÓN DE SERVICIOS
+        // ==========================================
         const servicesData = {
             electricity: {
                 title: "Energía Eléctrica",
@@ -280,17 +362,20 @@
         let currentService = null;
         let currentProvider = null;
 
-        // Funciones de utilidad
+        // ==========================================
+        // FUNCIONES DE UTILIDAD
+        // ==========================================
         function formatCurrency(amount) {
             return storageManager.formatCurrency(amount);
         }
 
-        // Función para obtener datos del usuario desde localStorage
         function getUserData() {
             return storageManager.getUserData();
         }
 
-        // Función para seleccionar tipo de servicio
+        // ==========================================
+        // FUNCIÓN PARA SELECCIONAR SERVICIO
+        // ==========================================
         function selectService(serviceType) {
             currentService = serviceType;
             const service = servicesData[serviceType];
@@ -317,10 +402,14 @@
             
             // Limpiar formulario
             document.getElementById('paymentForm').reset();
+            clearValidationErrors();
             updateProviderInfo();
+            setupRealtimeValidation();
         }
 
-        // Función para actualizar información del proveedor
+        // ==========================================
+        // ACTUALIZAR INFORMACIÓN DEL PROVEEDOR
+        // ==========================================
         function updateProviderInfo() {
             const providerIndex = document.getElementById('serviceProvider').value;
             
@@ -347,9 +436,17 @@
             
             // Recalcular total
             calculateTotal();
+            
+            // Revalidar campos si ya tienen valores
+            const amountInput = document.getElementById('paymentAmount');
+            if (amountInput.value) {
+                validateField('amount', amountInput.value);
+            }
         }
 
-        // Función para calcular total
+        // ==========================================
+        // CALCULAR TOTAL
+        // ==========================================
         function calculateTotal() {
             if (!currentProvider) return;
             
@@ -363,135 +460,331 @@
             document.getElementById('totalAmount').textContent = formatCurrency(total);
         }
 
-        // Función para validar formulario
+        // ==========================================
+        // VALIDACIÓN CON VALIDATEJS
+        // ==========================================
+        function getConstraints() {
+            const constraints = JSON.parse(JSON.stringify(baseConstraints));
+            
+            if (currentProvider) {
+                const userData = getUserData();
+                
+                constraints.amount.amountInRange = {
+                    min: currentProvider.minAmount,
+                    max: currentProvider.maxAmount
+                };
+                
+                constraints.amount.sufficientBalance = {
+                    fee: currentProvider.fee,
+                    balance: userData.saldoActual
+                };
+            }
+            
+            return constraints;
+        }
+
+        function validateField(fieldName, value) {
+            const fieldConstraints = {};
+            const constraints = getConstraints();
+            fieldConstraints[fieldName] = constraints[fieldName];
+            
+            const data = {};
+            data[fieldName] = value;
+            
+            const errors = validate(data, fieldConstraints);
+            
+            let inputId, errorId;
+            switch(fieldName) {
+                case 'provider':
+                    inputId = 'serviceProvider';
+                    errorId = 'providerError';
+                    break;
+                case 'accountNumber':
+                    inputId = 'accountNumber';
+                    errorId = 'accountError';
+                    break;
+                case 'amount':
+                    inputId = 'paymentAmount';
+                    errorId = 'amountError';
+                    break;
+            }
+            
+            const inputElement = document.getElementById(inputId);
+            const errorElement = document.getElementById(errorId);
+            
+            if (errors && errors[fieldName]) {
+                inputElement.classList.add('is-invalid');
+                inputElement.classList.remove('is-valid');
+                errorElement.textContent = errors[fieldName][0];
+                return false;
+            } else if (value) {
+                inputElement.classList.remove('is-invalid');
+                inputElement.classList.add('is-valid');
+                errorElement.textContent = '';
+                return true;
+            } else {
+                inputElement.classList.remove('is-invalid', 'is-valid');
+                errorElement.textContent = '';
+                return true;
+            }
+        }
+
         function validateForm() {
-            const providerIndex = document.getElementById('serviceProvider').value;
-            const accountNumber = document.getElementById('accountNumber').value.trim();
-            const amount = parseFloat(document.getElementById('paymentAmount').value);
-            const userData = getUserData();
+            const formData = {
+                provider: document.getElementById('serviceProvider').value,
+                accountNumber: document.getElementById('accountNumber').value,
+                amount: document.getElementById('paymentAmount').value
+            };
+
+            const constraints = getConstraints();
+            const errors = validate(formData, constraints);
             
-            if (providerIndex === '') {
-                Swal.fire('Error', 'Debe seleccionar un proveedor de servicio', 'error');
+            clearValidationErrors();
+
+            if (errors) {
+                let errorHtml = '<div style="text-align: left;"><ul style="margin: 0; padding-left: 20px;">';
+                
+                Object.keys(errors).forEach(field => {
+                    errors[field].forEach(error => {
+                        errorHtml += `<li style="margin: 5px 0;">${error}</li>`;
+                    });
+                    
+                    validateField(field, formData[field]);
+                });
+                
+                errorHtml += '</ul></div>';
+
+                Swal.fire({
+                    title: 'Errores de Validación',
+                    html: errorHtml,
+                    icon: 'error',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#dc3545'
+                });
+
                 return false;
             }
-            
-            if (!accountNumber) {
-                Swal.fire('Error', 'Debe ingresar el número de cuenta', 'error');
-                return false;
-            }
-            
-            if (!amount || amount <= 0) {
-                Swal.fire('Error', 'Debe ingresar un monto válido', 'error');
-                return false;
-            }
-            
-            if (amount < currentProvider.minAmount || amount > currentProvider.maxAmount) {
-                Swal.fire('Error', 
-                    `El monto debe estar entre ${formatCurrency(currentProvider.minAmount)} y ${formatCurrency(currentProvider.maxAmount)}`, 
-                    'error');
-                return false;
-            }
-            
-            const total = amount + currentProvider.fee;
-            if (total > userData.saldoActual) {
-                Swal.fire('Error', 'Saldo insuficiente para realizar este pago', 'error');
-                return false;
-            }
-            
+
             return true;
         }
 
-        // Función para procesar pago
+        function clearValidationErrors() {
+            document.querySelectorAll('.form-control').forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+            document.querySelectorAll('.invalid-feedback').forEach(error => {
+                error.textContent = '';
+            });
+        }
+
+        function setupRealtimeValidation() {
+            const providerSelect = document.getElementById('serviceProvider');
+            const accountInput = document.getElementById('accountNumber');
+            const amountInput = document.getElementById('paymentAmount');
+
+            providerSelect.addEventListener('change', function() {
+                validateField('provider', this.value);
+            });
+
+            accountInput.addEventListener('blur', function() {
+                validateField('accountNumber', this.value);
+            });
+
+            accountInput.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid')) {
+                    validateField('accountNumber', this.value);
+                }
+            });
+
+            amountInput.addEventListener('blur', function() {
+                if (currentProvider) {
+                    validateField('amount', this.value);
+                }
+            });
+
+            amountInput.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid')) {
+                    validateField('amount', this.value);
+                }
+            });
+        }
+
+        // ==========================================
+        // PROCESAR PAGO
+        // ==========================================
         async function processPayment() {
             if (!validateForm()) return;
 
             const amount = parseFloat(document.getElementById('paymentAmount').value);
             const fee = currentProvider.fee;
+            const total = amount + fee;
             const accountNumber = document.getElementById('accountNumber').value;
             const userData = getUserData();
+            const nuevoSaldo = userData.saldoActual - total;
 
-            try {
-                // Actualizar saldo
-                const nuevoSaldo = userData.saldoActual - (amount + fee);
-                if (storageManager.updateBalance(nuevoSaldo)) {
-                    // Registrar transacción
-                    storageManager.recordTransaction(
-                        'pago', 
-                        `Pago de ${servicesData[currentService].title} - ${currentProvider.name}`, 
-                        -(amount + fee), 
-                        nuevoSaldo
-                    );
+            // Mostrar confirmación
+            const result = await Swal.fire({
+                title: 'Confirmar Pago de Servicio',
+                html: `
+                    <div style="text-align: left; padding: 15px; font-size: 1.05rem;">
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Servicio:</strong><br>
+                            <span style="color: #666;">${servicesData[currentService].title}</span>
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Proveedor:</strong><br>
+                            <span style="color: #666;">${currentProvider.name}</span>
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Cuenta:</strong><br>
+                            <span style="color: #666; font-family: monospace;">${accountNumber}</span>
+                        </p>
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Monto:</strong> ${formatCurrency(amount)}
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Comisión:</strong> ${formatCurrency(fee)}
+                        </p>
+                        <p style="margin: 10px 0; padding-top: 10px; border-top: 2px solid #e0e0e0;">
+                            <strong style="color: #667eea;">Total a pagar:</strong><br>
+                            <span style="font-size: 1.5rem; color: #ffa940; font-weight: bold;">
+                                ${formatCurrency(total)}
+                            </span>
+                        </p>
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Saldo actual:</strong> ${formatCurrency(userData.saldoActual)}
+                        </p>
+                        <p style="margin: 10px 0;">
+                            <strong style="color: #667eea;">Nuevo saldo:</strong><br>
+                            <span style="font-size: 1.3rem; color: #10b981; font-weight: bold;">
+                                ${formatCurrency(nuevoSaldo)}
+                            </span>
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '✓ Confirmar Pago',
+                cancelButtonText: '✗ Cancelar',
+                confirmButtonColor: '#ffa940',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            });
 
+            if (result.isConfirmed) {
+                try {
+                    // Actualizar saldo
+                    if (storageManager.updateBalance(nuevoSaldo)) {
+                        // Registrar transacción
+                        storageManager.recordTransaction(
+                            'pago', 
+                            `Pago de ${servicesData[currentService].title} - ${currentProvider.name}`, 
+                            -total, 
+                            nuevoSaldo
+                        );
+
+                        await Swal.fire({
+                            title: '¡Pago Exitoso!',
+                            html: `
+                                <div style="text-align: center; padding: 20px;">
+                                    <div style="font-size: 3rem; margin: 20px 0;">
+                                        💳
+                                    </div>
+                                    <p style="font-size: 1.2rem; color: #666; margin: 10px 0;">
+                                        Pago procesado correctamente
+                                    </p>
+                                    <p style="font-size: 2rem; color: #ffa940; font-weight: bold; margin: 15px 0;">
+                                        ${formatCurrency(total)}
+                                    </p>
+                                    <p style="color: #666;">
+                                        ${servicesData[currentService].title}<br>
+                                        ${currentProvider.name}
+                                    </p>
+                                    <hr style="margin: 20px 0; border: none; border-top: 2px solid #e0e0e0;">
+                                    <p style="font-size: 1.1rem; margin: 10px 0;">
+                                        <strong>Nuevo saldo:</strong>
+                                    </p>
+                                    <p style="font-size: 1.8rem; color: #10b981; font-weight: bold;">
+                                        ${formatCurrency(nuevoSaldo)}
+                                    </p>
+                                </div>
+                            `,
+                            icon: 'success',
+                            confirmButtonText: 'Continuar',
+                            confirmButtonColor: '#28a745',
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+                        
+                        setTimeout(() => {
+                            window.location.href = 'PantallaAcciones.html';
+                        }, 2000);
+                    } else {
+                        throw new Error('Error al actualizar el saldo');
+                    }
+
+                } catch (error) {
                     Swal.fire({
-                        title: '¡Pago Exitoso!',
-                        html: `
-                            <div style="text-align: center;">
-                                <p>Pago procesado correctamente</p>
-                                <p><strong>Servicio:</strong> ${servicesData[currentService].title}</p>
-                                <p><strong>Monto:</strong> ${formatCurrency(amount)}</p>
-                                <p><strong>Comisión:</strong> ${formatCurrency(fee)}</p>
-                                <p><strong>Nuevo Saldo:</strong> ${formatCurrency(nuevoSaldo)}</p>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonText: 'Aceptar'
-                    }).then(() => {
-                        resetForm();
-                        window.location.href = 'PantallaAcciones.html';
+                        title: 'Error',
+                        text: 'Ocurrió un error al procesar el pago. Por favor, intenta nuevamente.',
+                        icon: 'error',
+                        confirmButtonText: 'Aceptar',
+                        confirmButtonColor: '#dc3545'
                     });
-                } else {
-                    throw new Error('Error al actualizar el saldo');
                 }
-
-            } catch (error) {
-                Swal.fire('Error', error.message, 'error');
             }
         }
 
-        // Función para resetear formulario
+        // ==========================================
+        // RESETEAR FORMULARIO
+        // ==========================================
         function resetForm() {
-            // Ocultar formulario y mostrar selección de servicios
             document.getElementById('paymentFormSection').style.display = 'none';
             document.getElementById('serviceTypeSection').style.display = 'block';
             document.getElementById('recentPayments').style.display = 'none';
             
-            // Limpiar variables
             currentService = null;
             currentProvider = null;
             
-            // Limpiar formulario
             document.getElementById('paymentForm').reset();
+            clearValidationErrors();
             document.getElementById('summaryAmount').textContent = '$0.00';
             document.getElementById('summaryFee').textContent = '$0.00';
             document.getElementById('totalAmount').textContent = '$0.00';
         }
 
-        // Función para actualizar información del usuario
+        // ==========================================
+        // ACTUALIZAR INFO DE USUARIO
+        // ==========================================
         function updateUserInfo() {
             const userData = getUserData();
             if (userData) {
                 document.getElementById('user-info').textContent = 
                     `${userData.nombre} • Cuenta: ${userData.cuenta} • Saldo: ${formatCurrency(userData.saldoActual)}`;
                 
-                // Actualizar estadísticas
                 document.getElementById('availableBalance').textContent = formatCurrency(userData.saldoActual);
             }
         }
 
-        // Función para volver
         function goBack() {
             window.location.href = 'PantallaAcciones.html';
         }
 
-        // Event listener para el formulario
+        // ==========================================
+        // EVENT LISTENERS
+        // ==========================================
         document.getElementById('paymentForm').addEventListener('submit', function(e) {
             e.preventDefault();
             processPayment();
         });
 
-        // Inicialización cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
             updateUserInfo();
+            console.log('Formulario de pago de servicios inicializado');
+            console.log('ValidateJS activo para validación');
+            console.log('SweetAlert2 configurado');
         });
     </script>
 
@@ -523,6 +816,33 @@
             font-size: 2rem;
             margin-bottom: 8px;
             display: block;
+        }
+
+        /* Estilos de validación */
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        
+        .form-control.is-valid {
+            border-color: #28a745;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        
+        .invalid-feedback {
+            display: block;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
         }
 
         @media (max-width: 768px) {
