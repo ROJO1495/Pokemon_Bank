@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/PantallasAcciones.css" />
+    <title>Depósito - Pokémon Bank</title>
+    
+    <!-- Bootstrap 4 -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- ValidateJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/validate.js/0.13.1/validate.min.js"></script>
+    
+    <!-- StorageManager - DEBE IR PRIMERO -->
+    <script src="js/storageManager.js"></script>
+
+    <style>
+      /* Estilos para validación en tiempo real */
+      .form-control.is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+      }
+      
+      .form-control.is-valid {
+        border-color: #28a745;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+      }
+      
+      .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+      }
+      
+      .valid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #28a745;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="atm-card">
+      <!-- Encabezado -->
+      <div class="header-bank">
+        <h3>Pokémon Bank</h3>
+        <p style="font-size: 1.1rem">Depósito</p>
+      </div>
+      
+      <!-- Información de usuario -->
+      <div class="d-flex justify-content-between align-items-center p-4 border rounded mb-4">
+        <div style="font-size: 1.2rem">
+            <strong id="userName">Cargando...</strong><br />
+            <small style="font-size: 1rem"><b>Cuenta:</b> <span id="accountNumber">Cargando...</span></small>
+        </div>
+        <div>
+            <span><b>Saldo Actual</b></span><br />
+            <span class="saldo" id="currentBalance" style="font-size:1.5rem; color: #28a745; font-weight: bold;">Cargando...</span>
+        </div>
+      </div>
+      
+      <!-- Formulario de Depósito con validación -->
+      <form id="depositForm" novalidate>
+        <div class="form-group">
+          <label for="montoDeposito"><b>Monto a depositar</b></label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="montoDeposito" 
+            name="amount"
+            placeholder="Ingrese el monto" 
+            min="0.01" 
+            max="10000"
+            step="0.01"
+            required
+          >
+          <div class="invalid-feedback" id="amountError"></div>
+          <small class="form-text text-muted">Monto máximo: $10,000.00 por transacción</small>
+        </div>
+
+        <div class="form-group">
+          <label for="descripcionDeposito"><b>Descripción (opcional)</b></label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="descripcionDeposito" 
+            name="description"
+            placeholder="Ej: Ahorro mensual, Depósito de nómina"
+            maxlength="100"
+          >
+          <div class="invalid-feedback" id="descriptionError"></div>
+          <small class="form-text text-muted">Máximo 100 caracteres</small>
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-success btn-lg">💰 Depositar</button>
+          <a href="PantallaAcciones.html" class="btn btn-secondary btn-lg ml-2">← Volver</a>
+        </div>
+      </form>
+    </div>
+
+    <script>
+    // ==========================================
+    // CONFIGURACIÓN DE VALIDACIONES CON VALIDATEJS
+    // ==========================================
+    
+    // Definir reglas de validación
+    const constraints = {
+      amount: {
+        presence: {
+          message: "^El monto es obligatorio"
+        },
+        numericality: {
+          greaterThan: 0,
+          lessThanOrEqualTo: 10000,
+          notGreaterThan: "^El monto debe ser mayor a $0.00",
+          notLessThanOrEqualTo: "^El monto máximo es $10,000.00",
+          notValid: "^Ingrese un monto válido"
+        }
+      },
+      description: {
+        length: {
+          maximum: 100,
+          tooLong: "^La descripción no puede exceder 100 caracteres"
+        }
+      }
+    };
+
+    // ==========================================
+    // VARIABLES GLOBALES
+    // ==========================================
+    let userData = null;
+
+    // ==========================================
+    // FUNCIÓN PARA CARGAR DATOS DEL USUARIO
+    // ==========================================
+    function loadUserData() {
+        userData = storageManager.getUserData();
+        if (userData) {
+            document.getElementById('userName').textContent = userData.nombre;
+            document.getElementById('accountNumber').textContent = userData.cuenta;
+            document.getElementById('currentBalance').textContent = 
+                storageManager.formatCurrency(userData.saldoActual);
+        }
+    }
+
+    // ==========================================
+    // VALIDACIÓN EN TIEMPO REAL
+    // ==========================================
+    function setupRealtimeValidation() {
+      const amountInput = document.getElementById('montoDeposito');
+      const descriptionInput = document.getElementById('descripcionDeposito');
+
+      // Validar monto en tiempo real
+      amountInput.addEventListener('blur', function() {
+        validateField('amount', this.value, 'amountError', this);
+      });
+
+      amountInput.addEventListener('input', function() {
+        // Limpiar error si el usuario está escribiendo
+        if (this.classList.contains('is-invalid')) {
+          validateField('amount', this.value, 'amountError', this);
+        }
+      });
+
+      // Validar descripción en tiempo real
+      descriptionInput.addEventListener('blur', function() {
+        validateField('description', this.value, 'descriptionError', this);
+      });
+
+      descriptionInput.addEventListener('input', function() {
+        if (this.classList.contains('is-invalid')) {
+          validateField('description', this.value, 'descriptionError', this);
+        }
+      });
+    }
+
+    // ==========================================
+    // FUNCIÓN PARA VALIDAR UN CAMPO INDIVIDUAL
+    // ==========================================
+    function validateField(fieldName, value, errorElementId, inputElement) {
+      const fieldConstraints = {};
+      fieldConstraints[fieldName] = constraints[fieldName];
+      
+      const data = {};
+      data[fieldName] = value;
+      
+      const errors = validate(data, fieldConstraints);
+      const errorElement = document.getElementById(errorElementId);
+      
+      if (errors && errors[fieldName]) {
+        // Mostrar error
+        inputElement.classList.add('is-invalid');
+        inputElement.classList.remove('is-valid');
+        errorElement.textContent = errors[fieldName][0];
+        return false;
+      } else if (value) {
+        // Mostrar como válido
+        inputElement.classList.remove('is-invalid');
+        inputElement.classList.add('is-valid');
+        errorElement.textContent = '';
+        return true;
+      } else {
+        // Limpiar estilos si está vacío
+        inputElement.classList.remove('is-invalid', 'is-valid');
+        errorElement.textContent = '';
+        return true;
+      }
+    }
+
+    // ==========================================
+    // FUNCIÓN PARA VALIDAR TODO EL FORMULARIO
+    // ==========================================
+    function validateForm() {
+      const formData = {
+        amount: document.getElementById('montoDeposito').value,
+        description: document.getElementById('descripcionDeposito').value
+      };
+
+      const errors = validate(formData, constraints);
+      
+      // Limpiar errores previos
+      document.querySelectorAll('.form-control').forEach(input => {
+        input.classList.remove('is-invalid', 'is-valid');
+      });
+      document.querySelectorAll('.invalid-feedback').forEach(error => {
+        error.textContent = '';
+      });
+
+      if (errors) {
+        // Mostrar errores
+        let errorHtml = '<div style="text-align: left;"><ul style="margin: 0; padding-left: 20px;">';
+        
+        Object.keys(errors).forEach(field => {
+          errors[field].forEach(error => {
+            errorHtml += `<li style="margin: 5px 0;">${error}</li>`;
+            
+            // Marcar campo como inválido
+            const fieldName = field === 'amount' ? 'montoDeposito' : 'descripcionDeposito';
+            const fieldElement = document.getElementById(fieldName);
+            const errorElementId = field === 'amount' ? 'amountError' : 'descriptionError';
+            
+            fieldElement.classList.add('is-invalid');
+            document.getElementById(errorElementId).textContent = error;
+          });
+        });
+        
+        errorHtml += '</ul></div>';
+
+        Swal.fire({
+          title: '⚠️ Errores de Validación',
+          html: errorHtml,
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#dc3545'
+        });
+
+        return false;
+      }
+
+      return true;
+    }
+
+    // ==========================================
+    // MANEJAR EL ENVÍO DEL FORMULARIO
+    // ==========================================
+    document.getElementById('depositForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validar formulario
+        if (!validateForm()) {
+          return;
+        }
+
+        const montoInput = document.getElementById('montoDeposito');
+        const descripcionInput = document.getElementById('descripcionDeposito');
+        
+        const monto = parseFloat(montoInput.value);
+        const descripcion = descripcionInput.value.trim() || 'Depósito en efectivo';
+        
+        // Calcular nuevo saldo
+        const nuevoSaldo = userData.saldoActual + monto;
+        
+        // Mostrar diálogo de confirmación con SweetAlert
+        const result = await Swal.fire({
+          title: 'Confirmar Depósito',
+          html: `
+            <div style="text-align: left; padding: 15px; font-size: 1.05rem;">
+              <p style="margin: 10px 0;">
+                <strong style="color: #667eea;">Monto a depositar:</strong><br>
+                <span style="font-size: 1.5rem; color: #28a745; font-weight: bold;">
+                  ${storageManager.formatCurrency(monto)}
+                </span>
+              </p>
+              <p style="margin: 10px 0;">
+                <strong style="color: #667eea;">Descripción:</strong><br>
+                <span style="color: #666;">${descripcion}</span>
+              </p>
+              <hr style="margin: 15px 0; border: none; border-top: 1px solid #e0e0e0;">
+              <p style="margin: 10px 0;">
+                <strong style="color: #667eea;">Saldo actual:</strong> 
+                ${storageManager.formatCurrency(userData.saldoActual)}
+              </p>
+              <p style="margin: 10px 0;">
+                <strong style="color: #667eea;"> Nuevo saldo:</strong><br>
+                <span style="font-size: 1.3rem; color: #10b981; font-weight: bold;">
+                  ${storageManager.formatCurrency(nuevoSaldo)}
+                </span>
+              </p>
+            </div>
+          `,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: '✓ Confirmar Depósito',
+          cancelButtonText: '✗ Cancelar',
+          confirmButtonColor: '#28a745',
+          cancelButtonColor: '#6c757d',
+          reverseButtons: true
+        });
+
+        // Si el usuario confirma
+        if (result.isConfirmed) {
+          try {
+            // Actualizar saldo
+            if (storageManager.updateBalance(nuevoSaldo)) {
+              // Registrar transacción
+              storageManager.recordTransaction('deposito', descripcion, monto, nuevoSaldo);
+              
+              // Mostrar mensaje de éxito con SweetAlert
+              await Swal.fire({
+                title: '¡Depósito Exitoso!',
+                html: `
+                  <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin: 20px 0;">
+                      💰
+                    </div>
+                    <p style="font-size: 2rem; color: #28a745; font-weight: bold; margin: 15px 0;">
+                      +${storageManager.formatCurrency(monto)}
+                    </p>
+                    <p style="font-size: 1.2rem; color: #666; margin: 10px 0;">
+                      ${descripcion}
+                    </p>
+                    <hr style="margin: 20px 0; border: none; border-top: 2px solid #e0e0e0;">
+                    <p style="font-size: 1.1rem; margin: 10px 0;">
+                      <strong>Nuevo saldo:</strong>
+                    </p>
+                    <p style="font-size: 1.8rem; color: #10b981; font-weight: bold;">
+                      ${storageManager.formatCurrency(nuevoSaldo)}
+                    </p>
+                  </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#28a745',
+                timer: 5000,
+                timerProgressBar: true
+              });
+              
+              // Limpiar formulario
+              montoInput.value = '';
+              descripcionInput.value = '';
+              document.querySelectorAll('.form-control').forEach(input => {
+                input.classList.remove('is-valid', 'is-invalid');
+              });
+              
+              // Actualizar saldo en pantalla
+              document.getElementById('currentBalance').textContent = 
+                  storageManager.formatCurrency(nuevoSaldo);
+              
+              // Redirigir después de 2 segundos
+              setTimeout(() => {
+                  window.location.href = 'PantallaAcciones.html';
+              }, 2000);
+              
+            } else {
+              throw new Error('No se pudo actualizar el saldo');
+            }
+          } catch (error) {
+            // Mostrar error con SweetAlert
+            Swal.fire({
+              title: 'Error',
+              text: 'Ocurrió un error al procesar el depósito. Por favor, intenta nuevamente.',
+              icon: 'error',
+              confirmButtonText: 'Aceptar',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        }
+    });
+
+    // ==========================================
+    // INICIALIZACIÓN
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserData();
+      setupRealtimeValidation();
+      
+      console.log('Formulario de depósito inicializado');
+      console.log('ValidateJS activo para validación en tiempo real');
+      console.log('SweetAlert2 configurado para mensajes');
+    });
+    </script>
+  </body>
+</html>

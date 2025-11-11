@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="js/storageManager.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/PantallasAcciones.css" />
+    <title>Pantalla Principal - Pokémon Bank</title>
+
+    <!-- Bootstrap 4 -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <!-- Pantalla Principal -->
+    <div class="atm-card">
+      <!-- Encabezado -->
+      <div class="header-bank">
+        <h3>Pokémon Bank</h3>
+        <p style="font-size: 1.1rem">Bienvenido/a</p>
+      </div>
+
+      <!-- Información de usuario -->
+      <div
+        class="d-flex justify-content-between align-items-center p-4 border rounded mb-4"
+      >
+        <div style="font-size: 1.2rem">
+          <strong id="userName">Ash Ketchum</strong><br />
+          <small style="font-size: 1rem"> <b>Cuenta:</b> <span id="accountNumber">0987654321</span> </small>
+        </div>
+        <div>
+          <span><b>Saldo Actual</b></span
+          ><br />
+          <span class="saldo" id="currentBalance"></span>
+        </div>
+      </div>
+
+      <!-- Menú de Transacciones -->
+      <h4 class="text-center mb-4">Seleccione una Transacción</h4>
+      <div class="row">
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnDeposito">
+            Depósito
+          </button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnConsultarSaldo">
+            Consultar Saldo
+          </button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnRetiro">
+            Retiro
+          </button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnPagoServicios">
+            Pago de Servicios
+          </button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnHistorial">
+            Historial de Transacciones
+          </button>
+        </div>
+        <div class="col-md-6">
+          <button class="btn btn-success btn-custom" id="btnAnalisisGrafico">
+            Análisis Gráfico
+          </button>
+        </div>
+      </div>
+      <!-- Botón Salir -->
+      <div class="text-center mt-4">
+        <button class="btn btn-danger" id="btnSalir">Salir</button>
+      </div>
+    </div>
+
+    <script>
+        //Cargar datos
+
+        function loadUserData() {
+            const userData = storageManager.getUserData();
+
+            if (!userData) {
+                Swal.fire({
+                    title: '⚠️ Sesión Expirada',
+                    text: 'Por favor, inicia sesión nuevamente.',
+                    icon: 'warning',
+                    confirmButtonColor: '#667eea'
+                }).then(() => {
+                    window.location.href = 'index.html';
+                });
+                return;
+            }
+
+            // Mostrar informacion del usuario desde localStorage
+            document.getElementById('userName').textContent = userData.nombre;
+            document.getElementById('accountNumber').textContent = userData.cuenta;
+            document.getElementById('currentBalance').textContent = storageManager.formatCurrency(userData.saldoActual);
+        }
+
+        // Botones de navegacion
+        document.getElementById("btnDeposito").onclick = function () {
+            window.location.href = "deposito.html";
+        };
+
+        document.getElementById("btnConsultarSaldo").onclick = function () {
+            window.location.href = "consultaDeSaldo.html";
+        };
+
+        document.getElementById("btnRetiro").onclick = function () {
+            window.location.href = "retiro.html";
+        };
+
+        document.getElementById("btnPagoServicios").onclick = function () {
+            window.location.href = "pago-servicios.html";
+        };
+
+        document.getElementById("btnHistorial").onclick = function () {
+            window.location.href = "historial.html";
+        };
+
+        document.getElementById("btnAnalisisGrafico").onclick = function () {
+            window.location.href = "reportes.html";
+        };
+
+        // Botón Salir
+        document.getElementById("btnSalir").addEventListener("click", () => {
+            Swal.fire({
+                title: "¿Desea cerrar la sesión?",
+                text: "Si cierra sesión tendrá que ingresar de nuevo con su PIN.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Sí, salir",
+                cancelButtonText: "Cancelar",
+                reverseButtons: true,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: "Sesión cerrada",
+                        text: "Ha cerrado su sesión correctamente.",
+                        icon: "success",
+                        confirmButtonText: "Aceptar",
+                    }).then(() => {
+                        window.location.href = "index.html";
+                    });
+                }
+            });
+        });
+
+        // Cargar informacion al iniciar
+        window.addEventListener('DOMContentLoaded', loadUserData);
+    </script>
+</body>
+</html>

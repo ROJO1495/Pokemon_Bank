@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reportes - Pokémon Bank</title>
+  <link rel="stylesheet" href="css/styleResportes.css" />
+  
+  <!-- Chart.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- ===== ENCABEZADO ===== -->
+  <header class="header">
+    <div class="sun-icon">☀️</div>
+    <h1>Reportes de tu cuenta Pokémon Bank</h1>
+    <p>Visualiza tus ingresos, egresos y evolución del saldo</p>
+  </header>
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
+  <main class="container">
+    <div class="dashboard-grid">
+      <!-- Distribución general -->
+      <div class="card">
+        <h2>Distribución general</h2>
+        <div class="chart-container">
+          <canvas id="graficoDistribucion"></canvas>
+        </div>
+      </div>
+
+      <!-- Movimientos mensuales -->
+      <div class="card">
+        <h2>Movimientos por mes</h2>
+        <div class="chart-container">
+          <canvas id="graficoMensual"></canvas>
+        </div>
+      </div>
+
+      <!-- Evolución del saldo -->
+      <div class="card full-width-card">
+        <h2>Evolución del saldo</h2>
+        <div class="chart-container">
+          <canvas id="graficoSaldo"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón de retorno -->
+    <div style="text-align:center; margin-top: 2rem;">
+      <a href="PantallaAcciones.html" class="btn-volver">⬅ Volver al inicio</a>
+    </div>
+  </main>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="js/examples/reportes.js"></script>
+
+  <script>
+    console.log("=== DIAGNÓSTICO ===");
+    console.log("Chart disponible:", typeof Chart !== 'undefined');
+    console.log("Canvas encontrados:", {
+      graficoDistribucion: !!document.getElementById('graficoDistribucion'),
+      graficoMensual: !!document.getElementById('graficoMensual'),
+      graficoSaldo: !!document.getElementById('graficoSaldo')
+    });
+  </script>
+</body>
+</html>
