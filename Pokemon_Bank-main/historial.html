@@ -51,10 +51,10 @@
                     <label for="filterType" class="form-label">Tipo de Transacción</label>
                     <select id="filterType" class="form-control" onchange="applyFilters()">
                         <option value="all">Todas las transacciones</option>
-                        <option value="deposit">Depósitos</option>
-                        <option value="withdrawal">Retiros</option>
-                        <option value="payment">Pagos de Servicios</option>
-                        <option value="inquiry">Consultas</option>
+                        <option value="deposito">Depósitos</option>
+                        <option value="retiro">Retiros</option>
+                        <option value="pago">Pagos de Servicios</option>
+                        <option value="acceso">Consultas</option>
                     </select>
                 </div>
 
@@ -133,11 +133,9 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
-    //agregado por el jspdf
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-    //-------------
-    <script src="js/historial.js"></script>
 
     <script>
         // Variables globales
@@ -146,173 +144,81 @@
         let filteredTransactions = [];
         let allTransactions = [];
 
-        // Datos del historial (incluir en historial.js posteriormente)
-        const historialData = {
-            user: {
-                name: "Ash Ketchum",
-                accountNumber: "1234-5678-9012",
-                balance: 25750.00
-            },
-            transactions: [
-                {
-                    id: 1,
-                    date: "2025-09-18",
-                    time: "14:30",
-                    type: "deposit",
-                    description: "Depósito en efectivo",
-                    location: "Sucursal Centro Pokémon",
-                    reference: "DEP-20250918-001",
-                    amount: +1500.00,
-                    balance: 25750.00,
-                    status: "completed"
-                },
-                {
-                    id: 2,
-                    date: "2025-09-17",
-                    time: "10:15",
-                    type: "withdrawal",
-                    description: "Retiro de efectivo",
-                    location: "ATM Plaza Kanto",
-                    reference: "WTH-20250917-002",
-                    amount: -800.00,
-                    balance: 24250.00,
-                    status: "completed"
-                },
-                {
-                    id: 3,
-                    date: "2025-09-16",
-                    time: "16:45",
-                    type: "payment",
-                    description: "Pago Energía Eléctrica",
-                    location: "ATM Centro Johto",
-                    reference: "PAY-ELEC-789456123",
-                    amount: -165.75,
-                    balance: 25050.00,
-                    status: "completed"
-                },
-                {
-                    id: 4,
-                    date: "2025-09-15",
-                    time: "09:20",
-                    type: "inquiry",
-                    description: "Consulta de saldo",
-                    location: "ATM Centro Comercial",
-                    reference: "INQ-20250915-004",
-                    amount: 0.00,
-                    balance: 25215.75,
-                    status: "completed"
-                },
-                {
-                    id: 5,
-                    date: "2025-09-14",
-                    time: "18:30",
-                    type: "payment",
-                    description: "Pago Internet",
-                    location: "ATM Sucursal Norte",
-                    reference: "PAY-INT-456789012",
-                    amount: -89.99,
-                    balance: 25215.75,
-                    status: "completed"
-                },
-                {
-                    id: 6,
-                    date: "2025-09-13",
-                    time: "11:45",
-                    type: "deposit",
-                    description: "Transferencia recibida",
-                    location: "Transfer Automático",
-                    reference: "TRF-20250913-006",
-                    amount: +2500.00,
-                    balance: 25305.74,
-                    status: "completed"
-                },
-                {
-                    id: 7,
-                    date: "2025-09-12",
-                    time: "14:20",
-                    type: "withdrawal",
-                    description: "Retiro de efectivo",
-                    location: "ATM Cerulean City",
-                    reference: "WTH-20250912-007",
-                    amount: -400.00,
-                    balance: 22805.74,
-                    status: "completed"
-                },
-                {
-                    id: 8,
-                    date: "2025-09-11",
-                    time: "13:15",
-                    type: "payment",
-                    description: "Pago Agua Potable",
-                    location: "ATM Lavender Town",
-                    reference: "PAY-WAT-234567890",
-                    amount: -45.50,
-                    balance: 23205.74,
-                    status: "completed"
-                }
-            ]
-        };
-
         // Funciones de utilidad
         function formatCurrency(amount) {
-            return new Intl.NumberFormat('es-SV', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(amount);
+            return storageManager.formatCurrency(amount);
         }
 
-        function formatDate(date) {
-            return new Date(date).toLocaleDateString('es-SV', {
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-SV', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
             });
         }
 
-        function formatTime(time) {
-            return time;
+        function formatTime(timeString) {
+            return timeString || '00:00';
+        }
+
+        // Función para obtener datos del usuario
+        function getUserData() {
+            return storageManager.getUserData();
+        }
+
+        // Función para obtener transacciones desde localStorage
+        function getTransactions() {
+            return storageManager.getTransactions();
         }
 
         // Función para obtener transacciones filtradas
         function getFilteredTransactions() {
-            let transactions = [...historialData.transactions];
+            let transactions = getTransactions();
 
             // Filtrar por tipo
             const typeFilter = document.getElementById('filterType').value;
             if (typeFilter !== 'all') {
-                transactions = transactions.filter(t => t.type === typeFilter);
+                transactions = transactions.filter(t => t.tipo === typeFilter);
             }
 
             // Filtrar por fecha desde
             const dateFrom = document.getElementById('filterDateFrom').value;
             if (dateFrom) {
-                transactions = transactions.filter(t => new Date(t.date) >= new Date(dateFrom));
+                transactions = transactions.filter(t => new Date(t.fecha) >= new Date(dateFrom));
             }
 
             // Filtrar por fecha hasta
             const dateTo = document.getElementById('filterDateTo').value;
             if (dateTo) {
-                transactions = transactions.filter(t => new Date(t.date) <= new Date(dateTo));
+                transactions = transactions.filter(t => new Date(t.fecha) <= new Date(dateTo));
             }
 
             // Filtrar por texto de búsqueda
             const searchText = document.getElementById('searchText').value.toLowerCase();
             if (searchText) {
                 transactions = transactions.filter(t =>
-                    t.description.toLowerCase().includes(searchText) ||
-                    t.location.toLowerCase().includes(searchText) ||
-                    t.reference.toLowerCase().includes(searchText)
+                    t.descripcion.toLowerCase().includes(searchText) ||
+                    (t.ubicacion && t.ubicacion.toLowerCase().includes(searchText)) ||
+                    (t.referencia && t.referencia.toLowerCase().includes(searchText))
                 );
             }
 
             // Ordenar por fecha (más reciente primero)
-            transactions.sort((a, b) => {
-                const dateA = new Date(a.date + 'T' + a.time);
-                const dateB = new Date(b.date + 'T' + b.time);
-                return dateB - dateA;
-            });
+            transactions.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
             return transactions;
+        }
+
+        // Función para obtener etiqueta del tipo
+        function getTypeLabel(type) {
+            const labels = {
+                'deposito': 'Depósito',
+                'retiro': 'Retiro',
+                'pago': 'Pago Servicio',
+                'acceso': 'Consulta'
+            };
+            return labels[type] || type;
         }
 
         // Función para calcular estadísticas
@@ -329,21 +235,21 @@
             };
 
             transactions.forEach(t => {
-                const amount = Math.abs(t.amount);
-                switch (t.type) {
-                    case 'deposit':
+                const amount = Math.abs(t.monto);
+                switch (t.tipo) {
+                    case 'deposito':
                         stats.deposits++;
                         stats.depositAmount += amount;
                         break;
-                    case 'withdrawal':
+                    case 'retiro':
                         stats.withdrawals++;
                         stats.withdrawalAmount += amount;
                         break;
-                    case 'payment':
+                    case 'pago':
                         stats.payments++;
                         stats.paymentAmount += amount;
                         break;
-                    case 'inquiry':
+                    case 'acceso':
                         stats.inquiries++;
                         break;
                 }
@@ -392,49 +298,47 @@
 
             document.getElementById('emptyState').style.display = 'none';
 
-            container.innerHTML = pageTransactions.map(transaction => `
+            container.innerHTML = pageTransactions.map(transaction => {
+                const fecha = new Date(transaction.fecha);
+                const fechaFormateada = formatDate(transaction.fecha);
+                const horaFormateada = fecha.toLocaleTimeString('es-SV', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                return `
                 <div class="transaction-item">
                     <div class="row align-items-center">
                         <div class="col-md-2">
-                            <div class="font-weight-bold">${formatDate(transaction.date)}</div>
-                            <small class="text-muted">${formatTime(transaction.time)}</small>
+                            <div class="font-weight-bold">${fechaFormateada}</div>
+                            <small class="text-muted">${horaFormateada}</small>
                         </div>
                         <div class="col-md-3">
-                            <span class="transaction-type type-${transaction.type}">
-                                ${getTypeLabel(transaction.type)}
+                            <span class="transaction-type type-${transaction.tipo}">
+                                ${getTypeLabel(transaction.tipo)}
                             </span>
                         </div>
                         <div class="col-md-4">
-                            <div class="font-weight-bold">${transaction.description}</div>
-                            <small class="text-muted">${transaction.location}</small>
-                            <br><small class="text-muted">Ref: ${transaction.reference}</small>
+                            <div class="font-weight-bold">${transaction.descripcion}</div>
+                            <small class="text-muted">${transaction.ubicacion || 'ATM Pokémon Bank'}</small>
+                            <br><small class="text-muted">Ref: ${transaction.id}</small>
                         </div>
                         <div class="col-md-2 text-right">
-                            <div class="font-weight-bold ${transaction.amount >= 0 ? 'amount-positive' : 'amount-negative'}">
-                                ${transaction.amount >= 0 ? '+' : ''}${formatCurrency(Math.abs(transaction.amount))}
+                            <div class="font-weight-bold ${transaction.monto >= 0 ? 'amount-positive' : 'amount-negative'}">
+                                ${transaction.monto >= 0 ? '+' : ''}${formatCurrency(Math.abs(transaction.monto))}
                             </div>
                         </div>
                         <div class="col-md-1 text-right">
-                            <small class="text-muted">${formatCurrency(transaction.balance)}</small>
+                            <small class="text-muted">${formatCurrency(transaction.saldoResultante)}</small>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Actualizar contador de resultados
             document.getElementById('results-count').textContent =
                 `Mostrando ${startIndex + 1}-${Math.min(endIndex, transactions.length)} de ${transactions.length} resultados`;
-        }
-
-        // Función para obtener etiqueta del tipo
-        function getTypeLabel(type) {
-            const labels = {
-                'deposit': 'Depósito',
-                'withdrawal': 'Retiro',
-                'payment': 'Pago Servicio',
-                'inquiry': 'Consulta'
-            };
-            return labels[type] || type;
         }
 
         // Función para renderizar paginación
@@ -514,116 +418,98 @@
 
         // Función para volver
         function goBack() {
+            window.location.href = 'PantallaAcciones.html';
+        }
+
+        // Función para exportar a PDF mejorada
+        async function exportToPDF() {
             try {
-                window.location.href = 'PantallaAcciones.html';
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const userData = getUserData();
+                const transactions = filteredTransactions.length > 0 ? filteredTransactions : getTransactions();
+
+                // Encabezado
+                doc.setFontSize(18);
+                doc.text("Historial de Transacciones - Pokémon Bank ATM", 14, 20);
+                doc.setFontSize(12);
+                doc.text(`Usuario: ${userData.nombre}`, 14, 30);
+                doc.text(`Cuenta: ${userData.cuenta}`, 14, 37);
+                doc.text(`Saldo Actual: ${formatCurrency(userData.saldoActual)}`, 14, 44);
+                doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-SV')}`, 14, 51);
+
+                // Preparar datos para la tabla
+                const tableData = transactions.map(t => {
+                    const fecha = new Date(t.fecha);
+                    return [
+                        fecha.toLocaleDateString('es-SV'),
+                        fecha.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit' }),
+                        getTypeLabel(t.tipo),
+                        t.descripcion,
+                        (t.monto >= 0 ? '+' : '') + formatCurrency(Math.abs(t.monto)),
+                        formatCurrency(t.saldoResultante)
+                    ];
+                });
+
+                // Crear tabla
+                doc.autoTable({
+                    startY: 60,
+                    head: [["Fecha", "Hora", "Tipo", "Descripción", "Monto", "Saldo"]],
+                    body: tableData,
+                    styles: { 
+                        fontSize: 9, 
+                        cellPadding: 4,
+                        textColor: [0, 0, 0]
+                    },
+                    headStyles: { 
+                        fillColor: [99, 102, 241], 
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [240, 240, 240]
+                    },
+                    margin: { top: 60 }
+                });
+
+                // Estadísticas al final
+                const stats = calculateStats(transactions);
+                const finalY = doc.lastAutoTable.finalY + 10;
+                
+                doc.setFontSize(11);
+                doc.text("Resumen Estadístico:", 14, finalY);
+                doc.text(`Total de transacciones: ${stats.total}`, 14, finalY + 8);
+                doc.text(`Depósitos: ${stats.deposits} (${formatCurrency(stats.depositAmount)})`, 14, finalY + 16);
+                doc.text(`Retiros: ${stats.withdrawals} (${formatCurrency(stats.withdrawalAmount)})`, 14, finalY + 24);
+                doc.text(`Pagos: ${stats.payments} (${formatCurrency(stats.paymentAmount)})`, 14, finalY + 32);
+
+                // Guardar PDF localmente (solución simple y confiable)
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                doc.save(`historial_${userData.nombre.replace(/\s+/g, '_')}_${timestamp}.pdf`);
+
             } catch (error) {
-                window.history.back();
+                console.error('Error al generar PDF:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No se pudo generar el PDF. Intente nuevamente.',
+                    icon: 'error',
+                    confirmButtonText: 'Aceptar'
+                });
             }
         }
 
-        // Función para exportar a PDF (placeholder)
-               async function exportToPDF() {
-          try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-        
-            // Encabezado
-            doc.setFontSize(18);
-            doc.text("Historial de Transacciones - Pokémon Bank ATM", 14, 20);
-            doc.setFontSize(12);
-            doc.text(`Usuario: ${historialData.user.name}`, 14, 30);
-            doc.text(`Cuenta: ${historialData.user.accountNumber}`, 14, 37);
-            doc.text(`Saldo: ${formatCurrency(historialData.user.balance)}`, 14, 44);
-        
-            // Tabla (usar filteredTransactions si hay filtros, si no historialData.transactions)
-            const source = (filteredTransactions && filteredTransactions.length) ? filteredTransactions : historialData.transactions;
-            const body = source.map(t => [
-              formatDate(t.date),
-              t.time,
-              getTypeLabel(t.type),
-              t.description,
-              (t.amount >= 0 ? '+' : '') + t.amount.toFixed(2),
-              t.balance.toFixed(2)
-            ]);
-        
-            doc.autoTable({
-              startY: 60,
-              head: [["Fecha", "Hora", "Tipo", "Descripción", "Monto", "Saldo"]],
-              body: body,
-              styles: { fontSize: 9, cellPadding: 4 },
-              headStyles: { fillColor: [99,102,241], textColor: 255 }
-            });
-        
-            // Generar ArrayBuffer -> Blob (más fiable que output("blob") en algunos navegadores)
-            const arrayBuf = doc.output("arraybuffer");
-            const pdfBlob = new Blob([arrayBuf], { type: "application/pdf" });
-        
-            console.log("CLIENTE: blob size (bytes) before send:", pdfBlob.size);
-            if (pdfBlob.size < 200) console.warn("CLIENTE: El blob parece muy pequeño (<200 bytes). Revisa el contenido.");
-        
-            // Enviar al servidor
-            const form = new FormData();
-            form.append("pdf", pdfBlob, `historial_${Date.now()}.pdf`);
-        
-            const resp = await fetch("http://localhost:3000/save-pdf", {
-              method: "POST",
-              body: form
-            });
-        
-            if (!resp.ok) {
-              const text = await resp.text();
-              throw new Error("Error servidor: " + resp.status + " - " + text);
-            }
-        
-            const json = await resp.json();
-            console.log("CLIENTE: respuesta servidor:", json);
-        
-            // El servidor ahora devuelve { filename: "<nombre>.pdf" }
-            if (json && json.filename) {
-              const downloadUrl = `http://localhost:3000/generated_pdfs/${json.filename}`;
-        
-              // Descargar el PDF como blob para evitar problemas
-              const r = await fetch(downloadUrl);
-              if (!r.ok) throw new Error("Error al descargar el PDF: " + r.status);
-              const downloadedBlob = await r.blob();
-              console.log("CLIENTE: blob size (bytes) descargado:", downloadedBlob.size);
-        
-              // Forzar descarga
-              const a = document.createElement("a");
-              const objectUrl = URL.createObjectURL(downloadedBlob);
-              a.href = objectUrl;
-              a.download = json.filename;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(objectUrl);
-            } else {
-              alert("Error: el servidor no devolvió el nombre del archivo.");
-            }
-          } catch (err) {
-            console.error("EXPORT ERROR:", err);
-            // si falla la conexión, guardamos localmente como fallback
-            try {
-              const { jsPDF } = window.jspdf;
-              const fallbackDoc = new jsPDF();
-              fallbackDoc.text("PDF guardado localmente (falló servidor).", 10, 10);
-              fallbackDoc.save(`historial_local_${Date.now()}.pdf`);
-            } catch (saveErr) {
-              console.error("FALLBACK SAVE ERROR:", saveErr);
-            }
-            alert("No se pudo generar/guardar el PDF en el servidor. El PDF se guardará localmente si es posible.");
-          }
-        }
-//hasta esta parte termina el jsPDF*****************************************
-        
         // Inicialización cuando se carga la página
         document.addEventListener('DOMContentLoaded', function () {
-            // Cargar información del usuario
-            document.getElementById('user-info').textContent =
-                `${historialData.user.name} • Cuenta: ${historialData.user.accountNumber} • Saldo: ${formatCurrency(historialData.user.balance)}`;
+            // Cargar información del usuario desde localStorage
+            const userData = getUserData();
+            if (userData) {
+                document.getElementById('user-info').textContent =
+                    `${userData.nombre} • Cuenta: ${userData.cuenta} • Saldo: ${formatCurrency(userData.saldoActual)}`;
+            }
 
-            // Cargar transacciones inicial
-            allTransactions = historialData.transactions;
+            // Cargar transacciones desde localStorage
+            allTransactions = getTransactions();
             filteredTransactions = [...allTransactions];
 
             // Renderizar todo
@@ -633,5 +519,4 @@
         });
     </script>
 </body>
-
 </html>
