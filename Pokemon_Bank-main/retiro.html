@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="js/storageManager.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retiros - Banco Pokémon</title>
+    
+    <!-- Bootstrap 4.6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS principal del proyecto -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="pokeball-modern"></div>
+            <h1 class="login-title">Retiro de Efectivo</h1>
+        </div>
+
+        <div class="account-info">
+            <p>Cuenta Pokémon Trainer</p>
+            <div class="account-balance" id="accountBalance">Cargando...</div>
+            <p>Saldo disponible</p>
+        </div>
+
+        <div class="amount-display" id="amountDisplay">$0.00</div>
+
+        <div class="quick-amounts">
+            <div class="quick-amount" data-amount="20">$20.00</div>
+            <div class="quick-amount" data-amount="50">$50.00</div>
+            <div class="quick-amount" data-amount="100">$100.00</div>
+        </div>
+
+        <div class="numpad">
+            <div class="numpad-btn" data-value="1">1</div>
+            <div class="numpad-btn" data-value="2">2</div>
+            <div class="numpad-btn" data-value="3">3</div>
+            <div class="numpad-btn" data-value="4">4</div>
+            <div class="numpad-btn" data-value="5">5</div>
+            <div class="numpad-btn" data-value="6">6</div>
+            <div class="numpad-btn" data-value="7">7</div>
+            <div class="numpad-btn" data-value="8">8</div>
+            <div class="numpad-btn" data-value="9">9</div>
+            <div class="numpad-btn" data-value=".">.</div>
+            <div class="numpad-btn" data-value="0">0</div>
+            <div class="numpad-btn btn-clear" id="btnClear">C</div>
+        </div>
+
+        <button class="btn-login btn-confirm" id="btnConfirm">Confirmar Retiro</button>
+
+        <div class="login-footer">
+            <p>¿Necesitas ayuda? <a href="#" style="color: var(--primary);">Contáctanos</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Variables globales
+        let currentAmount = 0;
+        let userData = null;
+
+        // Elementos del DOM
+        const amountDisplay = document.getElementById('amountDisplay');
+        const accountBalance = document.getElementById('accountBalance');
+        const quickAmounts = document.querySelectorAll('.quick-amount');
+        const numpadBtns = document.querySelectorAll('.numpad-btn[data-value]');
+        const clearBtn = document.getElementById('btnClear');
+        const confirmBtn = document.getElementById('btnConfirm');
+
+        // Función para formatear moneda
+        function formatCurrency(amount) {
+            return storageManager.formatCurrency(amount);
+        }
+
+        // Función para obtener datos del usuario
+        function getUserData() {
+            return storageManager.getUserData();
+        }
+
+        // Función para actualizar display
+        function updateDisplay() {
+            amountDisplay.textContent = formatCurrency(currentAmount);
+        }
+
+        // Función para actualizar información de la cuenta
+        function updateAccountInfo() {
+            userData = getUserData();
+            if (userData) {
+                accountBalance.textContent = formatCurrency(userData.saldoActual);
+            }
+        }
+
+        // Función para validar retiro
+        function validateWithdrawal() {
+            if (currentAmount <= 0) {
+                Swal.fire('Error', 'Por favor ingrese un monto válido', 'error');
+                return false;
+            }
+
+            if (currentAmount > userData.saldoActual) {
+                Swal.fire('Error', 'Saldo insuficiente para realizar este retiro', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Función para procesar retiro
+        async function processWithdrawal() {
+            if (!validateWithdrawal()) return;
+
+            try {
+                // Actualizar saldo
+                const nuevoSaldo = userData.saldoActual - currentAmount;
+                if (storageManager.updateBalance(nuevoSaldo)) {
+                    // Registrar transacción
+                    storageManager.recordTransaction(
+                        'retiro', 
+                        'Retiro de efectivo', 
+                        -currentAmount, 
+                        nuevoSaldo
+                    );
+
+                    Swal.fire({
+                        title: '¡Retiro Exitoso!',
+                        html: `
+                            <div style="text-align: center;">
+                                <p>Retiro procesado correctamente</p>
+                                <p><strong>Monto retirado:</strong> ${formatCurrency(currentAmount)}</p>
+                                <p><strong>Nuevo Saldo:</strong> ${formatCurrency(nuevoSaldo)}</p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'Aceptar'
+                    }).then(() => {
+                        currentAmount = 0;
+                        updateDisplay();
+                        updateAccountInfo();
+                        
+                        setTimeout(() => {
+                            window.location.href = 'PantallaAcciones.html';
+                        }, 2000);
+                    });
+                } else {
+                    throw new Error('Error al actualizar el saldo');
+                }
+
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        // Event Listeners para botones de cantidad rápida
+        quickAmounts.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const amount = parseFloat(this.getAttribute('data-amount'));
+                currentAmount = amount;
+                updateDisplay();
+            });
+        });
+
+        // Event Listeners para teclado numérico
+        numpadBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                
+                if (value === '.') {
+                    if (!currentAmount.toString().includes('.')) {
+                        currentAmount = currentAmount.toString() + '.';
+                    }
+                } else {
+                    if (currentAmount === 0) {
+                        currentAmount = value;
+                    } else {
+                        currentAmount = currentAmount.toString() + value;
+                    }
+                }
+                
+                currentAmount = parseFloat(currentAmount) || 0;
+                updateDisplay();
+            });
+        });
+
+        // Event Listener para botón limpiar
+        clearBtn.addEventListener('click', function() {
+            currentAmount = 0;
+            updateDisplay();
+        });
+
+        // Event Listener para botón confirmar
+        confirmBtn.addEventListener('click', processWithdrawal);
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAccountInfo();
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>

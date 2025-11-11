@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <script src="js/storageManager.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago de Servicios - Pokémon Bank ATM</title>
+
+    <!-- Bootstrap 4.6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS principal del proyecto -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Contenedor principal de pagos -->
+    <div class="history-container">
+
+        <!-- Header de pagos -->
+        <div class="history-header">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="login-title mb-2">Pago de Servicios</h1>
+                    <p class="text-muted mb-0" id="user-info">Cargando información del usuario...</p>
+                </div>
+                <div class="text-right">
+                    <button class="btn btn-outline-secondary" onclick="goBack()">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selección de tipo de servicio -->
+        <div class="filters-section" id="serviceTypeSection">
+            <h4 class="mb-3">
+                <i class="fas fa-hand-pointer"></i> Seleccione el Tipo de Servicio
+            </h4>
+            
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <button class="btn btn-action-modern service-btn" onclick="selectService('electricity')">
+                        <i class="fas fa-bolt"></i><br>
+                        Energía Eléctrica
+                    </button>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <button class="btn btn-action-modern service-btn" onclick="selectService('water')">
+                        <i class="fas fa-tint"></i><br>
+                        Agua Potable
+                    </button>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <button class="btn btn-action-modern service-btn" onclick="selectService('internet')">
+                        <i class="fas fa-wifi"></i><br>
+                        Internet
+                    </button>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <button class="btn btn-action-modern service-btn" onclick="selectService('phone')">
+                        <i class="fas fa-phone"></i><br>
+                        Telefonía
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de pago -->
+        <div class="filters-section" id="paymentFormSection" style="display: none;">
+            <h4 class="mb-3" id="serviceTitle">
+                <i class="fas fa-edit"></i> Datos del Pago
+            </h4>
+            
+            <form id="paymentForm">
+                <div class="row">
+                    <div class="col-lg-6 mb-3">
+                        <label for="serviceProvider" class="form-label">Proveedor de Servicio</label>
+                        <select id="serviceProvider" class="form-control" required onchange="updateProviderInfo()">
+                            <option value="">Seleccione un proveedor...</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-6 mb-3">
+                        <label for="accountNumber" class="form-label">Número de Cuenta</label>
+                        <input type="text" id="accountNumber" class="form-control" 
+                               placeholder="Ingrese su número de cuenta" 
+                               required maxlength="20">
+                        <small class="form-text text-muted" id="accountFormat">Formato: ###-###-###</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6 mb-3">
+                        <label for="paymentAmount" class="form-label">Monto a Pagar</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <input type="number" id="paymentAmount" class="form-control" 
+                                   placeholder="0.00" step="0.01" min="0" required
+                                   onchange="calculateTotal()">
+                        </div>
+                        <small class="form-text text-muted" id="amountLimits">Monto mínimo: $0.00</small>
+                    </div>
+                    <div class="col-lg-6 mb-3">
+                        <label for="serviceFee" class="form-label">Comisión por Servicio</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <input type="text" id="serviceFee" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <div class="alert alert-info">
+                            <h5><i class="fas fa-calculator"></i> Resumen del Pago</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Monto del Servicio:</strong><br>
+                                    <span id="summaryAmount">$0.00</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Comisión:</strong><br>
+                                    <span id="summaryFee">$0.00</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Total a Pagar:</strong><br>
+                                    <span id="totalAmount" class="h5 text-primary">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-secondary w-100" onclick="resetForm()">
+                            <i class="fas fa-undo"></i> Limpiar Formulario
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-credit-card"></i> Procesar Pago
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Historial de pagos recientes -->
+        <div class="stats-grid" id="recentPayments" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="paymentsCount">0</div>
+                <div class="text-muted">Pagos Este Mes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalPaid">$0.00</div>
+                <div class="text-muted">Total Pagado</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalFees">$0.00</div>
+                <div class="text-muted">Comisiones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="availableBalance">$0.00</div>
+                <div class="text-muted">Saldo Disponible</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Configuración de servicios disponibles
+        const servicesData = {
+            electricity: {
+                title: "Energía Eléctrica",
+                icon: "fas fa-bolt",
+                providers: [
+                    {
+                        name: "Empresa Eléctrica Kanto",
+                        code: "EEK",
+                        fee: 2.50,
+                        minAmount: 10.00,
+                        maxAmount: 1000.00,
+                        accountFormat: "###-###-###"
+                    },
+                    {
+                        name: "Servicios Eléctricos Johto",
+                        code: "SEJ",
+                        fee: 2.00,
+                        minAmount: 15.00,
+                        maxAmount: 800.00,
+                        accountFormat: "####-####-##"
+                    }
+                ]
+            },
+            water: {
+                title: "Agua Potable",
+                icon: "fas fa-tint",
+                providers: [
+                    {
+                        name: "Aguas de Kanto S.A.",
+                        code: "AKS",
+                        fee: 1.50,
+                        minAmount: 5.00,
+                        maxAmount: 500.00,
+                        accountFormat: "########"
+                    },
+                    {
+                        name: "Hidro Johto",
+                        code: "HJO",
+                        fee: 1.75,
+                        minAmount: 8.00,
+                        maxAmount: 400.00,
+                        accountFormat: "###-###-###"
+                    }
+                ]
+            },
+            internet: {
+                title: "Internet",
+                icon: "fas fa-wifi",
+                providers: [
+                    {
+                        name: "Pokénet Internet",
+                        code: "PKN",
+                        fee: 1.00,
+                        minAmount: 20.00,
+                        maxAmount: 200.00,
+                        accountFormat: "#########"
+                    },
+                    {
+                        name: "Team Rocket Communications",
+                        code: "TRC",
+                        fee: 1.25,
+                        minAmount: 25.00,
+                        maxAmount: 150.00,
+                        accountFormat: "TR-######"
+                    }
+                ]
+            },
+            phone: {
+                title: "Telefonía",
+                icon: "fas fa-phone",
+                providers: [
+                    {
+                        name: "Poké Mobile",
+                        code: "PMB",
+                        fee: 1.00,
+                        minAmount: 10.00,
+                        maxAmount: 300.00,
+                        accountFormat: "####-####"
+                    },
+                    {
+                        name: "Silph Telecom",
+                        code: "STC",
+                        fee: 0.75,
+                        minAmount: 15.00,
+                        maxAmount: 250.00,
+                        accountFormat: "###-###-####"
+                    }
+                ]
+            }
+        };
+
+        let currentService = null;
+        let currentProvider = null;
+
+        // Funciones de utilidad
+        function formatCurrency(amount) {
+            return storageManager.formatCurrency(amount);
+        }
+
+        // Función para obtener datos del usuario desde localStorage
+        function getUserData() {
+            return storageManager.getUserData();
+        }
+
+        // Función para seleccionar tipo de servicio
+        function selectService(serviceType) {
+            currentService = serviceType;
+            const service = servicesData[serviceType];
+            
+            // Actualizar título
+            const serviceTitle = document.getElementById('serviceTitle');
+            serviceTitle.innerHTML = `<i class="${service.icon}"></i> ${service.title} - Datos del Pago`;
+            
+            // Poblar proveedores
+            const providerSelect = document.getElementById('serviceProvider');
+            providerSelect.innerHTML = '<option value="">Seleccione un proveedor...</option>';
+            
+            service.providers.forEach((provider, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = provider.name;
+                providerSelect.appendChild(option);
+            });
+            
+            // Mostrar formulario y ocultar selección
+            document.getElementById('serviceTypeSection').style.display = 'none';
+            document.getElementById('paymentFormSection').style.display = 'block';
+            document.getElementById('recentPayments').style.display = 'grid';
+            
+            // Limpiar formulario
+            document.getElementById('paymentForm').reset();
+            updateProviderInfo();
+        }
+
+        // Función para actualizar información del proveedor
+        function updateProviderInfo() {
+            const providerIndex = document.getElementById('serviceProvider').value;
+            
+            if (providerIndex === '') {
+                currentProvider = null;
+                document.getElementById('accountFormat').textContent = 'Seleccione un proveedor primero';
+                document.getElementById('amountLimits').textContent = '';
+                document.getElementById('serviceFee').value = '';
+                return;
+            }
+            
+            currentProvider = servicesData[currentService].providers[providerIndex];
+            
+            // Actualizar formato de cuenta
+            document.getElementById('accountFormat').textContent = 
+                `Formato: ${currentProvider.accountFormat}`;
+            
+            // Actualizar límites de monto
+            document.getElementById('amountLimits').textContent = 
+                `Monto mínimo: ${formatCurrency(currentProvider.minAmount)} - Máximo: ${formatCurrency(currentProvider.maxAmount)}`;
+            
+            // Actualizar comisión
+            document.getElementById('serviceFee').value = currentProvider.fee.toFixed(2);
+            
+            // Recalcular total
+            calculateTotal();
+        }
+
+        // Función para calcular total
+        function calculateTotal() {
+            if (!currentProvider) return;
+            
+            const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+            const fee = currentProvider.fee;
+            const total = amount + fee;
+            
+            // Actualizar resumen
+            document.getElementById('summaryAmount').textContent = formatCurrency(amount);
+            document.getElementById('summaryFee').textContent = formatCurrency(fee);
+            document.getElementById('totalAmount').textContent = formatCurrency(total);
+        }
+
+        // Función para validar formulario
+        function validateForm() {
+            const providerIndex = document.getElementById('serviceProvider').value;
+            const accountNumber = document.getElementById('accountNumber').value.trim();
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const userData = getUserData();
+            
+            if (providerIndex === '') {
+                Swal.fire('Error', 'Debe seleccionar un proveedor de servicio', 'error');
+                return false;
+            }
+            
+            if (!accountNumber) {
+                Swal.fire('Error', 'Debe ingresar el número de cuenta', 'error');
+                return false;
+            }
+            
+            if (!amount || amount <= 0) {
+                Swal.fire('Error', 'Debe ingresar un monto válido', 'error');
+                return false;
+            }
+            
+            if (amount < currentProvider.minAmount || amount > currentProvider.maxAmount) {
+                Swal.fire('Error', 
+                    `El monto debe estar entre ${formatCurrency(currentProvider.minAmount)} y ${formatCurrency(currentProvider.maxAmount)}`, 
+                    'error');
+                return false;
+            }
+            
+            const total = amount + currentProvider.fee;
+            if (total > userData.saldoActual) {
+                Swal.fire('Error', 'Saldo insuficiente para realizar este pago', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Función para procesar pago
+        async function processPayment() {
+            if (!validateForm()) return;
+
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const fee = currentProvider.fee;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const userData = getUserData();
+
+            try {
+                // Actualizar saldo
+                const nuevoSaldo = userData.saldoActual - (amount + fee);
+                if (storageManager.updateBalance(nuevoSaldo)) {
+                    // Registrar transacción
+                    storageManager.recordTransaction(
+                        'pago', 
+                        `Pago de ${servicesData[currentService].title} - ${currentProvider.name}`, 
+                        -(amount + fee), 
+                        nuevoSaldo
+                    );
+
+                    Swal.fire({
+                        title: '¡Pago Exitoso!',
+                        html: `
+                            <div style="text-align: center;">
+                                <p>Pago procesado correctamente</p>
+                                <p><strong>Servicio:</strong> ${servicesData[currentService].title}</p>
+                                <p><strong>Monto:</strong> ${formatCurrency(amount)}</p>
+                                <p><strong>Comisión:</strong> ${formatCurrency(fee)}</p>
+                                <p><strong>Nuevo Saldo:</strong> ${formatCurrency(nuevoSaldo)}</p>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'Aceptar'
+                    }).then(() => {
+                        resetForm();
+                        window.location.href = 'PantallaAcciones.html';
+                    });
+                } else {
+                    throw new Error('Error al actualizar el saldo');
+                }
+
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        // Función para resetear formulario
+        function resetForm() {
+            // Ocultar formulario y mostrar selección de servicios
+            document.getElementById('paymentFormSection').style.display = 'none';
+            document.getElementById('serviceTypeSection').style.display = 'block';
+            document.getElementById('recentPayments').style.display = 'none';
+            
+            // Limpiar variables
+            currentService = null;
+            currentProvider = null;
+            
+            // Limpiar formulario
+            document.getElementById('paymentForm').reset();
+            document.getElementById('summaryAmount').textContent = '$0.00';
+            document.getElementById('summaryFee').textContent = '$0.00';
+            document.getElementById('totalAmount').textContent = '$0.00';
+        }
+
+        // Función para actualizar información del usuario
+        function updateUserInfo() {
+            const userData = getUserData();
+            if (userData) {
+                document.getElementById('user-info').textContent = 
+                    `${userData.nombre} • Cuenta: ${userData.cuenta} • Saldo: ${formatCurrency(userData.saldoActual)}`;
+                
+                // Actualizar estadísticas
+                document.getElementById('availableBalance').textContent = formatCurrency(userData.saldoActual);
+            }
+        }
+
+        // Función para volver
+        function goBack() {
+            window.location.href = 'PantallaAcciones.html';
+        }
+
+        // Event listener para el formulario
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            processPayment();
+        });
+
+        // Inicialización cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUserInfo();
+        });
+    </script>
+
+    <style>
+        .service-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 24px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            height: 120px;
+        }
+
+        .service-btn:hover {
+            background: white;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+            color: #6366f1;
+        }
+
+        .service-btn i {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .service-btn {
+                height: 100px;
+                font-size: 0.9rem;
+                padding: 16px;
+            }
+            
+            .service-btn i {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</body>
+</html>

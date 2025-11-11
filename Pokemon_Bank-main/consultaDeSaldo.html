@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <script src="js/storageManager.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/PantallasAcciones.css" />
+    <title>Consulta de Saldo - Pokémon Bank</title>
+    <!-- Bootstrap 4 -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+  </head>
+  <body>
+    <div class="atm-card">
+      <!-- Encabezado -->
+      <div class="header-bank">
+        <h3>Pokémon Bank</h3>
+        <p style="font-size: 1.1rem">Consulta de Saldo</p>
+      </div>
+      <!-- Información de usuario -->
+      <div
+        class="d-flex justify-content-between align-items-center p-4 border rounded mb-4"
+      >
+        <div style="font-size: 1.2rem">
+            <strong id="userName">Cargando...</strong><br />
+            <small style="font-size: 1rem"><b>Cuenta:</b> <span id="accountNumber">Cargando...</span></small>
+        </div>
+        <div>
+            <span><b>Saldo Actual</b></span><br />
+            <span class="saldo" id="currentBalance" style="font-size: 1.5rem">Cargando...</span>
+        </div>
+        <!-- Botón Volver -->
+        <div class="text-center mt-4">
+            <a href="PantallaAcciones.html" class="btn btn-primary">Volver</a>
+          </div>
+        </div>
+    </div>
+    <script>
+        // Script para cargar datos
+        function loadUserData() {
+            const userData = storageManager.getUserData();
+            if (userData) {
+                document.getElementById('userName').textContent = userData.nombre;
+                document.getElementById('accountNumber').textContent = userData.cuenta;
+                document.getElementById('currentBalance').textContent = 
+                    storageManager.formatCurrency(userData.saldoActual);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadUserData);
+        </script>
+    
+      
+    </body>
+</html>
