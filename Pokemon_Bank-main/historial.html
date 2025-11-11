@@ -133,6 +133,10 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+    //agregado por el jspdf
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+    //-------------
     <script src="js/historial.js"></script>
 
     <script>
@@ -518,10 +522,100 @@
         }
 
         // Función para exportar a PDF (placeholder)
-        function exportToPDF() {
-            alert('Función de exportación a PDF - Implementar con jsPDF');
+               async function exportToPDF() {
+          try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+        
+            // Encabezado
+            doc.setFontSize(18);
+            doc.text("Historial de Transacciones - Pokémon Bank ATM", 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Usuario: ${historialData.user.name}`, 14, 30);
+            doc.text(`Cuenta: ${historialData.user.accountNumber}`, 14, 37);
+            doc.text(`Saldo: ${formatCurrency(historialData.user.balance)}`, 14, 44);
+        
+            // Tabla (usar filteredTransactions si hay filtros, si no historialData.transactions)
+            const source = (filteredTransactions && filteredTransactions.length) ? filteredTransactions : historialData.transactions;
+            const body = source.map(t => [
+              formatDate(t.date),
+              t.time,
+              getTypeLabel(t.type),
+              t.description,
+              (t.amount >= 0 ? '+' : '') + t.amount.toFixed(2),
+              t.balance.toFixed(2)
+            ]);
+        
+            doc.autoTable({
+              startY: 60,
+              head: [["Fecha", "Hora", "Tipo", "Descripción", "Monto", "Saldo"]],
+              body: body,
+              styles: { fontSize: 9, cellPadding: 4 },
+              headStyles: { fillColor: [99,102,241], textColor: 255 }
+            });
+        
+            // Generar ArrayBuffer -> Blob (más fiable que output("blob") en algunos navegadores)
+            const arrayBuf = doc.output("arraybuffer");
+            const pdfBlob = new Blob([arrayBuf], { type: "application/pdf" });
+        
+            console.log("CLIENTE: blob size (bytes) before send:", pdfBlob.size);
+            if (pdfBlob.size < 200) console.warn("CLIENTE: El blob parece muy pequeño (<200 bytes). Revisa el contenido.");
+        
+            // Enviar al servidor
+            const form = new FormData();
+            form.append("pdf", pdfBlob, `historial_${Date.now()}.pdf`);
+        
+            const resp = await fetch("http://localhost:3000/save-pdf", {
+              method: "POST",
+              body: form
+            });
+        
+            if (!resp.ok) {
+              const text = await resp.text();
+              throw new Error("Error servidor: " + resp.status + " - " + text);
+            }
+        
+            const json = await resp.json();
+            console.log("CLIENTE: respuesta servidor:", json);
+        
+            // El servidor ahora devuelve { filename: "<nombre>.pdf" }
+            if (json && json.filename) {
+              const downloadUrl = `http://localhost:3000/generated_pdfs/${json.filename}`;
+        
+              // Descargar el PDF como blob para evitar problemas
+              const r = await fetch(downloadUrl);
+              if (!r.ok) throw new Error("Error al descargar el PDF: " + r.status);
+              const downloadedBlob = await r.blob();
+              console.log("CLIENTE: blob size (bytes) descargado:", downloadedBlob.size);
+        
+              // Forzar descarga
+              const a = document.createElement("a");
+              const objectUrl = URL.createObjectURL(downloadedBlob);
+              a.href = objectUrl;
+              a.download = json.filename;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(objectUrl);
+            } else {
+              alert("Error: el servidor no devolvió el nombre del archivo.");
+            }
+          } catch (err) {
+            console.error("EXPORT ERROR:", err);
+            // si falla la conexión, guardamos localmente como fallback
+            try {
+              const { jsPDF } = window.jspdf;
+              const fallbackDoc = new jsPDF();
+              fallbackDoc.text("PDF guardado localmente (falló servidor).", 10, 10);
+              fallbackDoc.save(`historial_local_${Date.now()}.pdf`);
+            } catch (saveErr) {
+              console.error("FALLBACK SAVE ERROR:", saveErr);
+            }
+            alert("No se pudo generar/guardar el PDF en el servidor. El PDF se guardará localmente si es posible.");
+          }
         }
-
+//hasta esta parte termina el jsPDF*****************************************
+        
         // Inicialización cuando se carga la página
         document.addEventListener('DOMContentLoaded', function () {
             // Cargar información del usuario
